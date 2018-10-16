@@ -39,11 +39,11 @@ class EventTracker extends Component {
       this.throttledCallback = throttle(this.trackScroll, this.props.throttleRate)
     }
 
-    root.addEventListener('scroll', this.throttledCallback)
+    root.document.addEventListener('scroll', this.throttledCallback)
   }
 
   componentWillUnmount () {
-    root.removeEventListener('scroll', this.throttledCallback)
+    root.document.removeEventListener('scroll', this.throttledCallback)
   }
 
   render () {
