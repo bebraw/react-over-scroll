@@ -1,6 +1,6 @@
 {
   "name": "@bebraw/react-over-scroll",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "A scroll based slideshow with wings",
   "main": "lib/index.js",
   "scripts": {
