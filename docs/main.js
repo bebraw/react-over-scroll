@@ -178,6 +178,9 @@ var App = function App(props) {
     slides: pages.length,
     children: renderPages,
     anchors: '!/intro',
+    onPageChange: function onPageChange(page) {
+      return console.log('Page changed to ' + page + '.');
+    },
     throttleRate: 30 }), _react2.default.createElement('div', { className: _styles2.default.main }, _react2.default.createElement('h2', null, 'Create impressive scroll aware webpages'), _react2.default.createElement('h3', null, 'Animate your content'), _react2.default.createElement('p', null, 'With the help of the progress variable you can easily control nested slideshows or other elements.')), _react2.default.createElement(_src2.default, { factor: 2,
     slides: pages2.length,
     children: renderPages2,
@@ -7259,11 +7262,24 @@ process.umask = function() { return 0; };
 
 'use strict';
 
+var printWarning = function() {};
+
 if (process.env.NODE_ENV !== 'production') {
-  var invariant = require('fbjs/lib/invariant');
-  var warning = require('fbjs/lib/warning');
   var ReactPropTypesSecret = require('./lib/ReactPropTypesSecret');
   var loggedTypeFailures = {};
+
+  printWarning = function(text) {
+    var message = 'Warning: ' + text;
+    if (typeof console !== 'undefined') {
+      console.error(message);
+    }
+    try {
+      // --- Welcome to debugging React ---
+      // This error was thrown as a convenience so that you can use this stack
+      // to find the callsite that caused this warning to fire.
+      throw new Error(message);
+    } catch (x) {}
+  };
 }
 
 /**
@@ -7288,12 +7304,29 @@ function checkPropTypes(typeSpecs, values, location, componentName, getStack) {
         try {
           // This is intentionally an invariant that gets caught. It's the same
           // behavior as without this statement except with a better message.
-          invariant(typeof typeSpecs[typeSpecName] === 'function', '%s: %s type `%s` is invalid; it must be a function, usually from ' + 'the `prop-types` package, but received `%s`.', componentName || 'React class', location, typeSpecName, typeof typeSpecs[typeSpecName]);
+          if (typeof typeSpecs[typeSpecName] !== 'function') {
+            var err = Error(
+              (componentName || 'React class') + ': ' + location + ' type `' + typeSpecName + '` is invalid; ' +
+              'it must be a function, usually from the `prop-types` package, but received `' + typeof typeSpecs[typeSpecName] + '`.'
+            );
+            err.name = 'Invariant Violation';
+            throw err;
+          }
           error = typeSpecs[typeSpecName](values, typeSpecName, componentName, location, null, ReactPropTypesSecret);
         } catch (ex) {
           error = ex;
         }
-        warning(!error || error instanceof Error, '%s: type specification of %s `%s` is invalid; the type checker ' + 'function must return `null` or an `Error` but returned a %s. ' + 'You may have forgotten to pass an argument to the type checker ' + 'creator (arrayOf, instanceOf, objectOf, oneOf, oneOfType, and ' + 'shape all require an argument).', componentName || 'React class', location, typeSpecName, typeof error);
+        if (error && !(error instanceof Error)) {
+          printWarning(
+            (componentName || 'React class') + ': type specification of ' +
+            location + ' `' + typeSpecName + '` is invalid; the type checker ' +
+            'function must return `null` or an `Error` but returned a ' + typeof error + '. ' +
+            'You may have forgotten to pass an argument to the type checker ' +
+            'creator (arrayOf, instanceOf, objectOf, oneOf, oneOfType, and ' +
+            'shape all require an argument).'
+          )
+
+        }
         if (error instanceof Error && !(error.message in loggedTypeFailures)) {
           // Only monitor this failure once because there tends to be a lot of the
           // same error.
@@ -7301,7 +7334,9 @@ function checkPropTypes(typeSpecs, values, location, componentName, getStack) {
 
           var stack = getStack ? getStack() : '';
 
-          warning(false, 'Failed %s type: %s%s', location, error.message, stack != null ? stack : '');
+          printWarning(
+            'Failed ' + location + ' type: ' + error.message + (stack != null ? stack : '')
+          );
         }
       }
     }
@@ -7311,7 +7346,7 @@ function checkPropTypes(typeSpecs, values, location, componentName, getStack) {
 module.exports = checkPropTypes;
 
 }).call(this,require('_process'))
-},{"./lib/ReactPropTypesSecret":180,"_process":176,"fbjs/lib/invariant":19,"fbjs/lib/warning":26}],178:[function(require,module,exports){
+},{"./lib/ReactPropTypesSecret":180,"_process":176}],178:[function(require,module,exports){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
  *
@@ -7343,13 +7378,31 @@ module.exports = function(isValidElement) {
 
 'use strict';
 
-var emptyFunction = require('fbjs/lib/emptyFunction');
-var invariant = require('fbjs/lib/invariant');
-var warning = require('fbjs/lib/warning');
 var assign = require('object-assign');
 
 var ReactPropTypesSecret = require('./lib/ReactPropTypesSecret');
 var checkPropTypes = require('./checkPropTypes');
+
+var printWarning = function() {};
+
+if (process.env.NODE_ENV !== 'production') {
+  printWarning = function(text) {
+    var message = 'Warning: ' + text;
+    if (typeof console !== 'undefined') {
+      console.error(message);
+    }
+    try {
+      // --- Welcome to debugging React ---
+      // This error was thrown as a convenience so that you can use this stack
+      // to find the callsite that caused this warning to fire.
+      throw new Error(message);
+    } catch (x) {}
+  };
+}
+
+function emptyFunctionThatReturnsNull() {
+  return null;
+}
 
 module.exports = function(isValidElement, throwOnDirectAccess) {
   /* global Symbol */
@@ -7493,12 +7546,13 @@ module.exports = function(isValidElement, throwOnDirectAccess) {
       if (secret !== ReactPropTypesSecret) {
         if (throwOnDirectAccess) {
           // New behavior only for users of `prop-types` package
-          invariant(
-            false,
+          var err = new Error(
             'Calling PropTypes validators directly is not supported by the `prop-types` package. ' +
             'Use `PropTypes.checkPropTypes()` to call them. ' +
             'Read more at http://fb.me/use-check-prop-types'
           );
+          err.name = 'Invariant Violation';
+          throw err;
         } else if (process.env.NODE_ENV !== 'production' && typeof console !== 'undefined') {
           // Old behavior for people using React.PropTypes
           var cacheKey = componentName + ':' + propName;
@@ -7507,15 +7561,12 @@ module.exports = function(isValidElement, throwOnDirectAccess) {
             // Avoid spamming the console because they are often not actionable except for lib authors
             manualPropTypeWarningCount < 3
           ) {
-            warning(
-              false,
+            printWarning(
               'You are manually calling a React.PropTypes validation ' +
-              'function for the `%s` prop on `%s`. This is deprecated ' +
+              'function for the `' + propFullName + '` prop on `' + componentName  + '`. This is deprecated ' +
               'and will throw in the standalone `prop-types` package. ' +
               'You may be seeing this warning due to a third-party PropTypes ' +
-              'library. See https://fb.me/react-warning-dont-call-proptypes ' + 'for details.',
-              propFullName,
-              componentName
+              'library. See https://fb.me/react-warning-dont-call-proptypes ' + 'for details.'
             );
             manualPropTypeCallCache[cacheKey] = true;
             manualPropTypeWarningCount++;
@@ -7559,7 +7610,7 @@ module.exports = function(isValidElement, throwOnDirectAccess) {
   }
 
   function createAnyTypeChecker() {
-    return createChainableTypeChecker(emptyFunction.thatReturnsNull);
+    return createChainableTypeChecker(emptyFunctionThatReturnsNull);
   }
 
   function createArrayOfTypeChecker(typeChecker) {
@@ -7609,8 +7660,8 @@ module.exports = function(isValidElement, throwOnDirectAccess) {
 
   function createEnumTypeChecker(expectedValues) {
     if (!Array.isArray(expectedValues)) {
-      process.env.NODE_ENV !== 'production' ? warning(false, 'Invalid argument supplied to oneOf, expected an instance of array.') : void 0;
-      return emptyFunction.thatReturnsNull;
+      process.env.NODE_ENV !== 'production' ? printWarning('Invalid argument supplied to oneOf, expected an instance of array.') : void 0;
+      return emptyFunctionThatReturnsNull;
     }
 
     function validate(props, propName, componentName, location, propFullName) {
@@ -7652,21 +7703,18 @@ module.exports = function(isValidElement, throwOnDirectAccess) {
 
   function createUnionTypeChecker(arrayOfTypeCheckers) {
     if (!Array.isArray(arrayOfTypeCheckers)) {
-      process.env.NODE_ENV !== 'production' ? warning(false, 'Invalid argument supplied to oneOfType, expected an instance of array.') : void 0;
-      return emptyFunction.thatReturnsNull;
+      process.env.NODE_ENV !== 'production' ? printWarning('Invalid argument supplied to oneOfType, expected an instance of array.') : void 0;
+      return emptyFunctionThatReturnsNull;
     }
 
     for (var i = 0; i < arrayOfTypeCheckers.length; i++) {
       var checker = arrayOfTypeCheckers[i];
       if (typeof checker !== 'function') {
-        warning(
-          false,
+        printWarning(
           'Invalid argument supplied to oneOfType. Expected an array of check functions, but ' +
-          'received %s at index %s.',
-          getPostfixForTypeWarning(checker),
-          i
+          'received ' + getPostfixForTypeWarning(checker) + ' at index ' + i + '.'
         );
-        return emptyFunction.thatReturnsNull;
+        return emptyFunctionThatReturnsNull;
       }
     }
 
@@ -7878,7 +7926,7 @@ module.exports = function(isValidElement, throwOnDirectAccess) {
 };
 
 }).call(this,require('_process'))
-},{"./checkPropTypes":177,"./lib/ReactPropTypesSecret":180,"_process":176,"fbjs/lib/emptyFunction":11,"fbjs/lib/invariant":19,"fbjs/lib/warning":26,"object-assign":175}],180:[function(require,module,exports){
+},{"./checkPropTypes":177,"./lib/ReactPropTypesSecret":180,"_process":176,"object-assign":175}],180:[function(require,module,exports){
 /**
  * Copyright (c) 2013-present, Facebook, Inc.
  *
@@ -7893,15 +7941,10 @@ var ReactPropTypesSecret = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
 module.exports = ReactPropTypesSecret;
 
 },{}],181:[function(require,module,exports){
-
-// Constant to identify a React Component. It's been extracted from ReactTypeOfWork
-// (https://github.com/facebook/react/blob/master/src/shared/ReactTypeOfWork.js#L20)
 'use strict';
 
 exports.__esModule = true;
 exports['default'] = getForceUpdate;
-var ReactClassComponent = 2;
-
 function traverseRenderedChildren(internalInstance, callback, argument) {
   callback(internalInstance, argument);
 
@@ -7944,7 +7987,7 @@ function deepForceUpdate(instance, React) {
 
   var node = root;
   while (true) {
-    if (node.tag === ReactClassComponent) {
+    if (node.stateNode !== null && typeof node.type === 'function') {
       var publicInstance = node.stateNode;
       var updater = publicInstance.updater;
 
@@ -26767,7 +26810,7 @@ var _components = {
 };
 
 var _livereactloadBabelTransform2 = (0, _babelTransform2.default)({
-  filename: '/Users/doppel/Documents/Code/foss/react-over-scroll/src/components/event-tracker/index.js',
+  filename: '/Users/juhovepsalainen/Projects/github/js/react-over-scroll/src/components/event-tracker/index.js',
   components: _components,
   locals: [],
   imports: [_react3.default]
@@ -26808,7 +26851,9 @@ var EventTracker = _wrapComponent('EventTracker')(function (_Component) {
     value: function componentWillMount() {
       // store so we can unbind properly in unmount
       this.throttledCallback = this.trackScroll;
-      if (this.props.throttleRate > 0) this.throttledCallback = (0, _lodash2.default)(this.trackScroll, this.props.throttleRate);
+      if (this.props.throttleRate > 0) {
+        this.throttledCallback = (0, _lodash2.default)(this.trackScroll, this.props.throttleRate);
+      }
 
       window.addEventListener('scroll', this.throttledCallback);
     }
@@ -26852,6 +26897,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.EventTracker = exports.default = undefined;
 
 var _react2 = require('react');
 
@@ -26906,7 +26952,7 @@ var _components = {
 };
 
 var _livereactloadBabelTransform2 = (0, _babelTransform2.default)({
-  filename: '/Users/doppel/Documents/Code/foss/react-over-scroll/src/index.js',
+  filename: '/Users/juhovepsalainen/Projects/github/js/react-over-scroll/src/index.js',
   components: _components,
   locals: [],
   imports: [_react3.default]
@@ -26925,6 +26971,8 @@ var OverScroll = _wrapComponent('OverScroll')(function (_Component) {
    * a scroll based slideshow with wings
    * @param {Object} props
    * @param {String} props.className
+   * @param {Number} props.initialPage - the index of the initial page to show
+   * @param {Function} props.onPageChange - triggered when a page is changed
    * @param {render} props.children - render function for children
    * @param {string} props.anchors - allow navigation via pagers
    *                                 (`anchors='!/works'` will create a url hashbang `#!/works/[1,2,3...]``)
@@ -26934,6 +26982,8 @@ var OverScroll = _wrapComponent('OverScroll')(function (_Component) {
    *  have to be scrolled to trigger the next page
    *  - 1 = 100vh
    *  - 2 = 200vh
+   * @param {Number} props.throttleRate = 0 - rate in milliseconds to throttle events
+   *  - defaults to no throttling
    */
   function OverScroll(props) {
     _classCallCheck(this, OverScroll);
@@ -26942,7 +26992,7 @@ var OverScroll = _wrapComponent('OverScroll')(function (_Component) {
 
     _this.state = {
       scrollY: window.scrollY,
-      counter: 0,
+      counter: Math.min(Math.max(props.initialPage, 0), props.slides && props.slides.length - 1),
       scrollOffset: 0
     };
     _this.updateScroll = _this.updateScroll.bind(_this);
@@ -26993,6 +27043,11 @@ var OverScroll = _wrapComponent('OverScroll')(function (_Component) {
         counter = this.props.slides - 1;
         scrollOffset = 100;
       }
+
+      if (this.state.counter !== counter) {
+        this.props.onPageChange && this.props.onPageChange(counter);
+      }
+
       this.setState({
         scrollY: scrollY,
         fixed: fixed,
@@ -27099,15 +27154,22 @@ var OverScroll = _wrapComponent('OverScroll')(function (_Component) {
         anchors: _react2.PropTypes.string,
         slides: _react2.PropTypes.number.isRequired,
         factor: _react2.PropTypes.number.isRequired,
-        throttleRate: _react2.PropTypes.number
+        throttleRate: _react2.PropTypes.number,
+        initialPage: _react2.PropTypes.number,
+        onPageChange: _react2.PropTypes.func
       };
     }
+
+    // TODO: React 16 doesn't pick these up?
+
   }, {
     key: 'defaultProps',
     value: function defaultProps() {
       return {
         factor: 1,
-        throttleRate: 0
+        throttleRate: 0,
+        initialPage: 0,
+        onPageChange: function onPageChange() {}
       };
     }
   }]);
@@ -27116,5 +27178,6 @@ var OverScroll = _wrapComponent('OverScroll')(function (_Component) {
 }(_react2.Component));
 
 exports.default = OverScroll;
+exports.EventTracker = _eventTracker2.default;
 
 },{"./components/css-supports":341,"./components/event-tracker":342,"livereactload/babel-transform":27,"react":340}]},{},[1]);
