@@ -1,5 +1,6 @@
 import {Component, PropTypes} from 'react'
 import throttle from 'lodash.throttle'
+import root from 'window-or-global'
 
 class EventTracker extends Component {
   /**
@@ -28,7 +29,7 @@ class EventTracker extends Component {
   }
 
   trackScroll () {
-    this.props.onScroll(window.scrollY)
+    this.props.onScroll(root.scrollY)
   }
 
   componentWillMount () {
@@ -38,11 +39,11 @@ class EventTracker extends Component {
       this.throttledCallback = throttle(this.trackScroll, this.props.throttleRate)
     }
 
-    window.addEventListener('scroll', this.throttledCallback)
+    root.addEventListener('scroll', this.throttledCallback)
   }
 
   componentWillUnmount () {
-    window.removeEventListener('scroll', this.throttledCallback)
+    root.removeEventListener('scroll', this.throttledCallback)
   }
 
   render () {
