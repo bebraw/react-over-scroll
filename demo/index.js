@@ -280,6 +280,7 @@ const App = props => {
               slides={pages.length}
               children={renderPages}
               anchors='!/intro'
+              onPageChange={page => console.log(`Page changed to ${page}.`)}
               throttleRate={30}/>
       <div className={styles.main}>
         <h2>Create impressive scroll aware webpages</h2>
